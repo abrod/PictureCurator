@@ -1,0 +1,2 @@
+# PictureCurator
+Organize your pictures
