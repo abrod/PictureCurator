@@ -59,8 +59,6 @@ public class PictureImporter implements Initializable {
 
 	private ObservableList<String> observedImageItems, observedFolderItems;
 
-	private CuratorImage bufferedImage;
-	private String lastSize = "";
 	private FileHandler fileHandler = new FileHandler();
 
 	private void initFolderItems() {
@@ -107,7 +105,7 @@ public class PictureImporter implements Initializable {
 			@Override
 			public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneWidth,
 					Number newSceneWidth) {
-				openImageWithinAThread(imageItems.getSelectionModel().getSelectedItem());
+				ImageThread.openImage(fileHandler, imageBox, imageItems.getSelectionModel().getSelectedItem());
 			}
 		};
 		imageBox.widthProperty().addListener(sizeListener);
@@ -123,7 +121,7 @@ public class PictureImporter implements Initializable {
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				// Your action here
 				checkStateOfButtons();
-				openImageWithinAThread(newValue);
+				ImageThread.openImage(fileHandler, imageBox, newValue);
 			}
 		});
 		observedImageItems = FXCollections.observableArrayList();
@@ -138,45 +136,9 @@ public class PictureImporter implements Initializable {
 	}
 
 	private void loadImageList() {
-		String[] array = fileHandler.getImages(fileHandler.importFolder);
+		String[] array = fileHandler.getImages(FileHandler.importFolder);
 		observedImageItems.clear();
 		observedImageItems.addAll(array);
-	}
-
-	protected void openImageWithinAThread(String sFileName) {
-		new Thread() {
-			public synchronized void run() {
-				openImportImage(sFileName);
-			};
-		}.start();
-	}
-
-	protected void openImportImage(String sFileName) {
-		try {
-			if (sFileName == null)
-				return;
-			int scaledWidth = (int) imageBox.getWidth();
-			int scaledHeight = (int) imageBox.getHeight();
-			String newSize = String.valueOf(scaledWidth + scaledHeight * 10000) + sFileName;
-			if (newSize.equals(lastSize)) {
-				return;
-			}
-			lastSize = newSize;
-			File file = fileHandler.getImageFile(sFileName);
-			if (file == null)
-				return;
-			bufferedImage = new CuratorImage(file);
-
-			Image image = bufferedImage.resizeBufferedImage(scaledWidth, scaledHeight);
-			BackgroundImage images = new BackgroundImage(image, BackgroundRepeat.NO_REPEAT, BackgroundRepeat.NO_REPEAT,
-					BackgroundPosition.CENTER, BackgroundSize.DEFAULT);
-			Background background = new Background(images);
-			imageBox.setBackground(background);
-
-		} catch (Exception e) {
-			// could not open image
-			showError(e);
-		}
 	}
 
 	@FXML
@@ -205,36 +167,12 @@ public class PictureImporter implements Initializable {
 				}
 			}
 			if (iNotRenamed > 0)
-				showError(new IOException("Could not rename " + iNotRenamed + " file" + (iNotRenamed > 1 ? "s" : "")));
+				SplashScreen.showError(
+						new IOException("Could not rename " + iNotRenamed + " file" + (iNotRenamed > 1 ? "s" : "")));
 			reloadImages();
 		} else {
 			// ... user chose CANCEL or closed the dialog
 		}
-	}
-
-	private void showError(Exception ex) {
-		Alert alert = new Alert(AlertType.ERROR);
-		alert.setTitle("Error");
-		alert.setHeaderText(ex.toString());
-		OutputStream out = new ByteArrayOutputStream();
-		ex.printStackTrace(new PrintStream(out));
-		BufferedReader reader = new BufferedReader(new StringReader(out.toString()));
-		String sLine = "";
-		StringBuilder sOut = new StringBuilder();
-		try {
-			while ((sLine = reader.readLine()) != null) {
-				if (sLine.replace("\t", " ").contains(" at "))
-					if (!sLine.contains("de.brod.")) {
-						// ignore
-					} else {
-						sOut.append(sLine).append("\n");
-					}
-			}
-		} catch (IOException e) {
-			// should not happen on stringreader
-		}
-		alert.setContentText(sOut.toString());
-		alert.show();
 	}
 
 	@FXML

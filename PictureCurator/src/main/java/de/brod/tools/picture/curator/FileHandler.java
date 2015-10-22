@@ -53,22 +53,24 @@ public class FileHandler {
 
 	String[] getImages(File imageFolder) {
 		mapOfImages.clear();
-		Pattern compile = Pattern.compile("(\\d{4})(\\d{2})(\\d{2})[_](\\d{2})(\\d{2})(\\d{2}).*");
-		for (File sFileName : imageFolder.listFiles()) {
-			String sName = sFileName.getName();
-			Matcher matcher = compile.matcher(sName);
-			if (matcher.find()) {
-				sName = matcher.group(3) + "." + getMonth(matcher.group(2)) + " " + matcher.group(1) + " "
-						+ matcher.group(4) + ":" + matcher.group(5) + ":" + matcher.group(6);
-				if (mapOfImages.containsKey(sName)) {
-					int iCount = 2;
-					while (mapOfImages.containsKey(sName + iCount)) {
-						iCount++;
+		if (imageFolder.exists() && imageFolder.isDirectory()) {
+			Pattern compile = Pattern.compile("(\\d{4})(\\d{2})(\\d{2})[_](\\d{2})(\\d{2})(\\d{2}).*");
+			for (File sFileName : imageFolder.listFiles()) {
+				String sName = sFileName.getName();
+				Matcher matcher = compile.matcher(sName);
+				if (matcher.find()) {
+					sName = matcher.group(3) + "." + getMonth(matcher.group(2)) + " " + matcher.group(1) + " "
+							+ matcher.group(4) + ":" + matcher.group(5) + ":" + matcher.group(6);
+					if (mapOfImages.containsKey(sName)) {
+						int iCount = 2;
+						while (mapOfImages.containsKey(sName + iCount)) {
+							iCount++;
+						}
+						sName += iCount;
 					}
-					sName += iCount;
 				}
+				mapOfImages.put(sName, sFileName);
 			}
-			mapOfImages.put(sName, sFileName);
 		}
 		String[] array = mapOfImages.keySet().toArray(new String[0]);
 		Comparator<String> comp = new Comparator<String>() {
@@ -120,6 +122,9 @@ public class FileHandler {
 	}
 
 	public String[] getYears(String folderName) {
+		if (folderName == null) {
+			return new String[0];
+		}
 		Pattern compile = Pattern.compile(Pattern.quote(folderName) + " (\\d{4})");
 		List<String> folderNames = getFolderNames(compile);
 		return folderNames.toArray(new String[0]);

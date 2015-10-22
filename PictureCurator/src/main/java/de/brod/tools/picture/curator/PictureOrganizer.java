@@ -1,5 +1,6 @@
 package de.brod.tools.picture.curator;
 
+import java.io.File;
 import java.net.URL;
 import java.util.List;
 import java.util.ResourceBundle;
@@ -14,6 +15,8 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.SelectionModel;
+import javafx.scene.control.SingleSelectionModel;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.Pane;
 
@@ -37,24 +40,48 @@ public class PictureOrganizer implements Initializable {
 	public void initialize(URL location, ResourceBundle resources) {
 
 		initFolderItems();
-
-		observedImageItems = FXCollections.observableArrayList();
-		imageItems.setItems(observedImageItems);
-
-		observedYearItems = FXCollections.observableArrayList();
-		yearItems.setItems(observedYearItems);
-		yearItems.setMaxWidth(Double.MAX_VALUE);
+		initYearItems();
+		initImageItems();
+		initImageBox();
 
 		reloadImages();
 	}
 
-	private void initFolderItems() {
-		observedFolderItems = FXCollections.observableArrayList();
-		folderItems.setItems(observedFolderItems);
-		MultipleSelectionModel<String> selectionModel = folderItems.getSelectionModel();
-		selectionModel.setSelectionMode(SelectionMode.SINGLE);
-		selectionModel.selectedItemProperty().addListener(new ChangeListener<String>() {
+	private void initImageBox() {
+		ChangeListener<Number> sizeListener = new ChangeListener<Number>() {
+			@Override
+			public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneWidth,
+					Number newSceneWidth) {
+				ImageThread.openImage(fileHandler, imageBox, imageItems.getSelectionModel().getSelectedItem());
+			}
+		};
+		imageBox.widthProperty().addListener(sizeListener);
+		imageBox.heightProperty().addListener(sizeListener);
+	}
 
+	private void initYearItems() {
+		observedYearItems = getItems(yearItems, new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				loadImageList();
+			}
+		});
+
+		yearItems.setMaxWidth(Double.MAX_VALUE);
+	}
+
+	private void initImageItems() {
+		observedImageItems = getItems(imageItems, SelectionMode.MULTIPLE, new ChangeListener<String>() {
+
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				ImageThread.openImage(fileHandler, imageBox, newValue);
+			}
+		});
+	}
+
+	private void initFolderItems() {
+		observedFolderItems = getItems(folderItems, SelectionMode.SINGLE, new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				// Your action here
@@ -62,6 +89,28 @@ public class PictureOrganizer implements Initializable {
 				loadYearList(newValue);
 			}
 		});
+	}
+
+	private ObservableList<String> getItems(ComboBox<String> combo, ChangeListener<String> changeListener) {
+		ObservableList<String> observedItems = getObservableList(changeListener, combo.getSelectionModel());
+		combo.setItems(observedItems);
+		return observedItems;
+	}
+
+	private ObservableList<String> getItems(ListView<String> listView, SelectionMode mode,
+			ChangeListener<? super String> changeListener) {
+		MultipleSelectionModel<String> selectionModel = listView.getSelectionModel();
+		selectionModel.setSelectionMode(mode);
+		ObservableList<String> observedItems = getObservableList(changeListener, selectionModel);
+		listView.setItems(observedItems);
+		return observedItems;
+	}
+
+	private ObservableList<String> getObservableList(ChangeListener<? super String> changeListener,
+			SelectionModel<String> selectionModel) {
+		ObservableList<String> observedItems = FXCollections.observableArrayList();
+		selectionModel.selectedItemProperty().addListener(changeListener);
+		return observedItems;
 	}
 
 	protected void loadYearList(String folderName) {
@@ -79,8 +128,8 @@ public class PictureOrganizer implements Initializable {
 
 	@FXML
 	public void reloadImages() {
-		loadImageList();
 		loadFolderList();
+		loadImageList();
 	}
 
 	private void loadFolderList() {
@@ -100,8 +149,14 @@ public class PictureOrganizer implements Initializable {
 
 	private void loadImageList() {
 		observedImageItems.clear();
-		// String[] array = FileHandler.getImages();
-		// observedImageItems.addAll(array);
+		//
+		String folder = folderItems.getSelectionModel().getSelectedItem();
+		String year = yearItems.getSelectionModel().getSelectedItem();
+		if (folder != null && year != null) {
+			File file = new File(FileHandler.outputFolder, folder + " " + year);
+			String[] images = fileHandler.getImages(file);
+			observedImageItems.addAll(images);
+		}
 	}
 
 	@FXML
