@@ -1,0 +1,66 @@
+<?import java.net.*?>
+<?import javafx.geometry.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.*?>
+<?import javafx.scene.image.ImageView ?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.control.Button?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.text.Text?>
+<?import javafx.scene.control.TextField?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml"
+	fx:controller="de.brod.tools.picture.curator.PictureImporter">
+	<left>
+		<BorderPane>
+			<center>
+				<ListView fx:id="imageItems" />
+			</center>
+		</BorderPane>
+	</left>
+	<right>
+		<BorderPane>
+			<center>
+				<ListView fx:id="folderItems" />
+			</center>
+			<top>
+				<TextField fx:id="folderInput" />
+			</top>
+		</BorderPane>
+	</right>
+	<center>
+		<Pane fx:id="imageBox" minWidth="300" minHeight="300" />
+	</center>
+	<top>
+		<VBox alignment="CENTER_LEFT">
+			<Label text="Top" />
+		</VBox>
+	</top>
+	<bottom>
+		<BorderPane>
+			<left>
+				<HBox alignment="CENTER_LEFT">
+					<Button text="Reload" onAction="#reloadImages" />
+				</HBox>
+			</left>
+			<center>
+				<HBox alignment="CENTER">
+					<Button text="Organize" onAction="#openOrganizePage" />
+				</HBox>
+			</center>
+			<right>
+				<HBox alignment="CENTER_RIGHT">
+					<Button text="move" fx:id="btnMove" disable="true"
+						onAction="#buttonMovePressed" />
+					<Button text="delete" fx:id="btnDelete" disable="true"
+						onAction="#buttonDeletePressed" />
+					<Button text="exit" fx:id="btnExit" onAction="#buttonExitPressed" />
+				</HBox>
+			</right>
+		</BorderPane>
+	</bottom>
+</BorderPane>
