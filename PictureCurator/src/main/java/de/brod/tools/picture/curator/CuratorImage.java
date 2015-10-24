@@ -129,6 +129,8 @@ public class CuratorImage {
 	}
 
 	private int findOrientation(byte[] exifData) {
+		if (exifData == null)
+			return -1;
 		ByteBuffer buf = ByteBuffer.wrap(exifData);
 
 		// exif header

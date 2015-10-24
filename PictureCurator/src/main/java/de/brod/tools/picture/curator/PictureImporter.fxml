@@ -15,38 +15,50 @@
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
 	fx:controller="de.brod.tools.picture.curator.PictureImporter">
-	<left>
-		<BorderPane>
-			<center>
-				<ListView fx:id="imageItems" />
-			</center>
-		</BorderPane>
-	</left>
-	<right>
-		<BorderPane>
-			<center>
-				<ListView fx:id="folderItems" />
-			</center>
-			<top>
-				<TextField fx:id="folderInput" />
-			</top>
-		</BorderPane>
-	</right>
-	<center>
-		<Pane fx:id="imageBox" minWidth="300" minHeight="300" />
-	</center>
 	<top>
 		<VBox alignment="CENTER_LEFT">
 			<Label text="Top" />
 		</VBox>
 	</top>
+	<left>
+		<BorderPane>
+			<center>
+				<BorderPane>
+					<center>
+						<ListView fx:id="imageItems" />
+					</center>
+					<bottom>
+						<HBox alignment="CENTER_LEFT">
+							<Button text="Reload" onAction="#reloadImages" />
+						</HBox>
+					</bottom>
+				</BorderPane>
+			</center>
+			<right>
+				<BorderPane>
+					<center>
+						<ListView fx:id="folderItems" />
+					</center>
+					<bottom>
+						<VBox>
+							<TextField fx:id="folderInput" />
+							<HBox>
+								<Button text="move" fx:id="btnMove" disable="true"
+									onAction="#buttonMovePressed" />
+								<Button text="delete" fx:id="btnDelete" disable="true"
+									onAction="#buttonDeletePressed" />
+							</HBox>
+						</VBox>
+					</bottom>
+				</BorderPane>
+			</right>
+		</BorderPane>
+	</left>
+	<center>
+		<Pane fx:id="imageBox" minWidth="300" minHeight="300" />
+	</center>
 	<bottom>
 		<BorderPane>
-			<left>
-				<HBox alignment="CENTER_LEFT">
-					<Button text="Reload" onAction="#reloadImages" />
-				</HBox>
-			</left>
 			<center>
 				<HBox alignment="CENTER">
 					<Button text="Organize" onAction="#openOrganizePage" />
@@ -54,10 +66,6 @@
 			</center>
 			<right>
 				<HBox alignment="CENTER_RIGHT">
-					<Button text="move" fx:id="btnMove" disable="true"
-						onAction="#buttonMovePressed" />
-					<Button text="delete" fx:id="btnDelete" disable="true"
-						onAction="#buttonDeletePressed" />
 					<Button text="exit" fx:id="btnExit" onAction="#buttonExitPressed" />
 				</HBox>
 			</right>

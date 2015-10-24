@@ -16,6 +16,7 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.control.Label?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
 	fx:controller="de.brod.tools.picture.curator.PictureOrganizer">
@@ -26,12 +27,21 @@
 			</left>
 			<right>
 				<BorderPane>
-					<center>
-						<ListView fx:id="imageItems" />
-					</center>
 					<top>
 						<ComboBox fx:id="yearItems" />
 					</top>
+					<center>
+						<VBox>
+							<ListView fx:id="imageItems" />
+							<Label fx:id="countImageItems" text="0 images"></Label>
+							<HBox>
+								<Button text="Up"></Button>
+								<Button text="Down"></Button>
+							</HBox>
+							<ListView fx:id="imageDeletedItems" />
+							<Label fx:id="countDeletedItems" text="0 images"></Label>
+						</VBox>
+					</center>
 				</BorderPane>
 			</right>
 		</BorderPane>

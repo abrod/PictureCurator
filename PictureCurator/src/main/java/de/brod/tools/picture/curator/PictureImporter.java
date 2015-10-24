@@ -136,7 +136,8 @@ public class PictureImporter implements Initializable {
 	}
 
 	private void loadImageList() {
-		String[] array = fileHandler.getImages(FileHandler.importFolder);
+		fileHandler.initImages(FileHandler.importFolder);
+		String[] array = fileHandler.getSetOfImages(FileHandler.importFolder);
 		observedImageItems.clear();
 		observedImageItems.addAll(array);
 	}

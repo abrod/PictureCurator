@@ -16,79 +16,42 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.SelectionModel;
-import javafx.scene.control.SingleSelectionModel;
-import javafx.scene.control.TextField;
 import javafx.scene.layout.Pane;
+import javafx.scene.control.Label;
 
 public class PictureOrganizer implements Initializable {
 
 	@FXML
 	ListView<String> imageItems;
 	@FXML
+	ListView<String> imageDeletedItems;
+	@FXML
 	ListView<String> folderItems;
 	@FXML
 	Pane imageBox;
 	@FXML
 	ComboBox<String> yearItems;
+	@FXML
+	Label countImageItems;
+	@FXML
+	Label countDeletedItems;
 
 	private FileHandler fileHandler = new FileHandler();
-	private ObservableList<String> observedFolderItems;
-	private ObservableList<String> observedImageItems;
-	private ObservableList<String> observedYearItems;
 
-	@Override
-	public void initialize(URL location, ResourceBundle resources) {
+	private ObservableList<String> observedFolderItems, observedImageItems, observedDeletedImageItems,
+			observedYearItems;
 
-		initFolderItems();
-		initYearItems();
-		initImageItems();
-		initImageBox();
-
-		reloadImages();
+	@FXML
+	public void buttonDeletePressed() {
 	}
 
-	private void initImageBox() {
-		ChangeListener<Number> sizeListener = new ChangeListener<Number>() {
-			@Override
-			public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneWidth,
-					Number newSceneWidth) {
-				ImageThread.openImage(fileHandler, imageBox, imageItems.getSelectionModel().getSelectedItem());
-			}
-		};
-		imageBox.widthProperty().addListener(sizeListener);
-		imageBox.heightProperty().addListener(sizeListener);
+	@FXML
+	public void buttonExitPressed() {
+		System.exit(0);
 	}
 
-	private void initYearItems() {
-		observedYearItems = getItems(yearItems, new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				loadImageList();
-			}
-		});
-
-		yearItems.setMaxWidth(Double.MAX_VALUE);
-	}
-
-	private void initImageItems() {
-		observedImageItems = getItems(imageItems, SelectionMode.MULTIPLE, new ChangeListener<String>() {
-
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				ImageThread.openImage(fileHandler, imageBox, newValue);
-			}
-		});
-	}
-
-	private void initFolderItems() {
-		observedFolderItems = getItems(folderItems, SelectionMode.SINGLE, new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				// Your action here
-				observedYearItems.clear();
-				loadYearList(newValue);
-			}
-		});
+	@FXML
+	public void buttonMovePressed() {
 	}
 
 	private ObservableList<String> getItems(ComboBox<String> combo, ChangeListener<String> changeListener) {
@@ -113,23 +76,67 @@ public class PictureOrganizer implements Initializable {
 		return observedItems;
 	}
 
-	protected void loadYearList(String folderName) {
-		String[] years = fileHandler.getYears(folderName);
-		String lastYear = yearItems.getSelectionModel().getSelectedItem();
-		observedYearItems.clear();
-		observedYearItems.addAll(years);
-		if (years.length > 0) {
-			if (lastYear == null || !observedYearItems.contains(lastYear)) {
-				lastYear = years[years.length - 1];
+	private void initFolderItems() {
+		observedFolderItems = getItems(folderItems, SelectionMode.SINGLE, new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				// Your action here
+				observedYearItems.clear();
+				loadYearList(newValue);
 			}
-			yearItems.getSelectionModel().select(lastYear);
-		}
+		});
 	}
 
-	@FXML
-	public void reloadImages() {
-		loadFolderList();
-		loadImageList();
+	@Override
+	public void initialize(URL location, ResourceBundle resources) {
+
+		initFolderItems();
+		initYearItems();
+		initImageItems();
+		initImageBox();
+
+		reloadImages();
+	}
+
+	private void initImageBox() {
+		ChangeListener<Number> sizeListener = new ChangeListener<Number>() {
+			@Override
+			public void changed(ObservableValue<? extends Number> observableValue, Number oldSceneWidth,
+					Number newSceneWidth) {
+				ImageThread.openImage(fileHandler, imageBox, imageItems.getSelectionModel().getSelectedItem());
+			}
+		};
+		imageBox.widthProperty().addListener(sizeListener);
+		imageBox.heightProperty().addListener(sizeListener);
+	}
+
+	private void initImageItems() {
+		observedImageItems = getItems(imageItems, SelectionMode.MULTIPLE, new ChangeListener<String>() {
+
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				ImageThread.openImage(fileHandler, imageBox, newValue);
+			}
+		});
+		observedDeletedImageItems = getItems(imageDeletedItems, SelectionMode.MULTIPLE, new ChangeListener<String>() {
+
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				ImageThread.openImage(fileHandler, imageBox, newValue);
+			}
+		});
+
+	}
+
+	private void initYearItems() {
+		observedYearItems = getItems(yearItems, new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				loadImageList();
+			}
+		});
+
+		yearItems.setMaxWidth(Double.MAX_VALUE);
 	}
 
 	private void loadFolderList() {
@@ -149,32 +156,53 @@ public class PictureOrganizer implements Initializable {
 
 	private void loadImageList() {
 		observedImageItems.clear();
+		observedDeletedImageItems.clear();
 		//
 		String folder = folderItems.getSelectionModel().getSelectedItem();
 		String year = yearItems.getSelectionModel().getSelectedItem();
 		if (folder != null && year != null) {
 			File file = new File(FileHandler.outputFolder, folder + " " + year);
-			String[] images = fileHandler.getImages(file);
-			observedImageItems.addAll(images);
+			File fileDeleted = new File(FileHandler.deletedFolder, folder + " " + year);
+			fileHandler.initImages(file, fileDeleted);
+
+			addItems(observedImageItems, file, countImageItems, imageItems);
+			addItems(observedDeletedImageItems, fileDeleted, countDeletedItems, null);
+
 		}
 	}
 
-	@FXML
-	public void buttonMovePressed() {
+	private void addItems(ObservableList<String> list, File file, Label counterLabel, ListView<String> view) {
+		String[] setOfImages = fileHandler.getSetOfImages(file);
+		list.addAll(setOfImages);
+		int length = setOfImages.length;
+		counterLabel.setText(length + " image" + (length != 1 ? "s" : ""));
+		if (view != null && setOfImages.length > 0) {
+			view.getSelectionModel().select(setOfImages[0]);
+		}
 	}
 
-	@FXML
-	public void buttonDeletePressed() {
-	}
-
-	@FXML
-	public void buttonExitPressed() {
-		System.exit(0);
+	protected void loadYearList(String folderName) {
+		String[] years = fileHandler.getYears(folderName);
+		String lastYear = yearItems.getSelectionModel().getSelectedItem();
+		observedYearItems.clear();
+		observedYearItems.addAll(years);
+		if (years.length > 0) {
+			if (lastYear == null || !observedYearItems.contains(lastYear)) {
+				lastYear = years[years.length - 1];
+			}
+			yearItems.getSelectionModel().select(lastYear);
+		}
 	}
 
 	@FXML
 	public void openImportPage() {
 		PictureCurator.openScene(PictureCurator.IMPORTER);
+	}
+
+	@FXML
+	public void reloadImages() {
+		loadFolderList();
+		loadImageList();
 	}
 
 }

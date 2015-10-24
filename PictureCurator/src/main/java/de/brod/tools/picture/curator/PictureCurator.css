@@ -4,6 +4,10 @@ HBox, VBox {
 	-fx-spacing: 10.0;
 }
 
+VBox HBox, HBox VBox {
+	-fx-padding: 0.0;
+}
+
 ListView, ComboBox  {
 	-fx-border-color: #008040;
 	-fx-border-width: 2.0px;
