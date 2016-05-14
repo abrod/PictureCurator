@@ -35,8 +35,8 @@
 							<ListView fx:id="imageItems" />
 							<Label fx:id="countImageItems" text="0 images"></Label>
 							<HBox>
-								<Button text="Up"></Button>
-								<Button text="Down"></Button>
+								<Button text="Up" onAction="#buttonUpImage"></Button>
+								<Button text="Down" onAction="#buttonDownImage"></Button>
 							</HBox>
 							<ListView fx:id="imageDeletedItems" />
 							<Label fx:id="countDeletedItems" text="0 images"></Label>

@@ -1,13 +1,9 @@
 package de.brod.tools.picture.curator;
 
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.io.StringReader;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -21,18 +17,14 @@ import javafx.fxml.Initializable;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Alert.AlertType;
 import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.TextField;
 import javafx.scene.control.TextInputDialog;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.layout.Background;
-import javafx.scene.layout.BackgroundImage;
-import javafx.scene.layout.BackgroundPosition;
-import javafx.scene.layout.BackgroundRepeat;
-import javafx.scene.layout.BackgroundSize;
 import javafx.scene.layout.Pane;
 
 public class PictureImporter implements Initializable {
@@ -61,6 +53,76 @@ public class PictureImporter implements Initializable {
 
 	private FileHandler fileHandler = new FileHandler();
 
+	@FXML
+	public void buttonDeleteNonHDR() {
+		List<String> lstNonHDR = new ArrayList<>();
+		List<String> selectedItems = imageItems.getItems();
+		for (String item : selectedItems) {
+			if (item.endsWith(FileHandler.HDR_KEY)) {
+				String name = item.substring(0, item.lastIndexOf("(")).trim();
+				if (selectedItems.contains(name)) {
+					lstNonHDR.add(name);
+				}
+			}
+		}
+		if (lstNonHDR.size() == 0) {
+			showInformation("Information", "No HDR pictures found");
+		} else {
+			if (showConfirmation("Delete", "Delete NON HDR files",
+					"Do you really want to delete " + lstNonHDR.size() + " NON HDR files ?")) {
+				moveFiles(fileHandler.deleteFolder("nonHDR"), "", lstNonHDR);
+			}
+		}
+
+	}
+
+	@FXML
+	public void buttonDeletePressed() {
+		List<String> selectedItems = imageItems.getSelectionModel().getSelectedItems();
+		String headerText = getSelectedItems("Delete", selectedItems);
+
+	}
+
+	@FXML
+	public void buttonExitPressed() {
+		System.exit(0);
+	}
+
+	@FXML
+	public void buttonMovePressed() {
+		List<String> selectedItems = imageItems.getSelectionModel().getSelectedItems();
+		String headerText = getSelectedItems("Move", selectedItems);
+
+		String moveToFolder = folderInput.getText();
+		Optional<String> result = showDialog(moveToFolder, "Rename.png", headerText, "Move images", "Move to");
+
+		if (result.isPresent()) {
+			moveToFolder = result.get();
+			// ... user chose OK
+			moveFiles(fileHandler.newFolder(), moveToFolder, selectedItems);
+		} else {
+			// ... user chose CANCEL or closed the dialog
+		}
+	}
+
+	protected void checkStateOfButtons() {
+		boolean bImageSelected = imageItems.getSelectionModel().getSelectedItem() != null;
+		boolean bFolderItemSelected = folderInput.getText() != null && folderInput.getText().length() > 0;
+		boolean bMove = bFolderItemSelected && bImageSelected;
+		btnMove.setDisable(!bMove);
+		btnDelete.setDisable(!bImageSelected);
+	}
+
+	private String getSelectedItems(String text, List<String> selectedItems) {
+		String headerText;
+		if (selectedItems.size() != 1) {
+			headerText = text + " the " + selectedItems.size() + " selected images";
+		} else {
+			headerText = text + " the selected image";
+		}
+		return headerText;
+	}
+
 	private void initFolderItems() {
 		MultipleSelectionModel<String> selectionModel = folderItems.getSelectionModel();
 		selectionModel.setSelectionMode(SelectionMode.SINGLE);
@@ -81,14 +143,6 @@ public class PictureImporter implements Initializable {
 
 		observedFolderItems = FXCollections.observableArrayList();
 		folderItems.setItems(observedFolderItems);
-	}
-
-	protected void checkStateOfButtons() {
-		boolean bImageSelected = imageItems.getSelectionModel().getSelectedItem() != null;
-		boolean bFolderItemSelected = folderInput.getText() != null && folderInput.getText().length() > 0;
-		boolean bMove = bFolderItemSelected && bImageSelected;
-		btnMove.setDisable(!bMove);
-		btnDelete.setDisable(!bImageSelected);
 	}
 
 	@Override
@@ -142,47 +196,24 @@ public class PictureImporter implements Initializable {
 		observedImageItems.addAll(array);
 	}
 
-	@FXML
-	public void buttonMovePressed() {
-		String moveToFolder = folderInput.getText();
-		List<String> selectedItems = imageItems.getSelectionModel().getSelectedItems();
-
-		TextInputDialog dialog = new TextInputDialog(moveToFolder);
-		dialog.setTitle("Move images");
-		if (selectedItems.size() != 1) {
-			dialog.setHeaderText("Move the " + selectedItems.size() + " selected images");
-		} else {
-			dialog.setHeaderText("Move the selected image");
-		}
-		dialog.setGraphic(new ImageView(this.getClass().getResource("Rename.png").toString()));
-		dialog.setContentText("Move to");
-
-		Optional<String> result = dialog.showAndWait();
-		if (result.isPresent()) {
-			moveToFolder = result.get();
-			// ... user chose OK
-			int iNotRenamed = 0;
-			for (String string : selectedItems) {
-				if (!fileHandler.renameFile(fileHandler.newFolder(), moveToFolder, string)) {
-					iNotRenamed++;
-				}
+	private void moveFiles(File baseFolder, String moveToFolder, List<String> selectedItems) {
+		int iNotRenamed = 0;
+		for (String fileName : selectedItems) {
+			if (!fileHandler.renameFile(baseFolder, moveToFolder, fileName)) {
+				iNotRenamed++;
 			}
-			if (iNotRenamed > 0)
-				SplashScreen.showError(
-						new IOException("Could not rename " + iNotRenamed + " file" + (iNotRenamed > 1 ? "s" : "")));
-			reloadImages();
-		} else {
-			// ... user chose CANCEL or closed the dialog
 		}
+		if (iNotRenamed > 0) {
+			SplashScreen.showError(
+					new IOException("Could not rename " + iNotRenamed + " file" + (iNotRenamed > 1 ? "s" : "")));
+		}
+		reloadImages();
+
 	}
 
 	@FXML
-	public void buttonDeletePressed() {
-	}
-
-	@FXML
-	public void buttonExitPressed() {
-		System.exit(0);
+	public void openOrganizePage() {
+		PictureCurator.openScene(PictureCurator.ORGANIZER);
 	}
 
 	@FXML
@@ -191,9 +222,35 @@ public class PictureImporter implements Initializable {
 		loadFolderList();
 	}
 
-	@FXML
-	public void openOrganizePage() {
-		PictureCurator.openScene(PictureCurator.ORGANIZER);
+	private boolean showConfirmation(String title, String header, String content) {
+		Alert alert = new Alert(AlertType.CONFIRMATION);
+		alert.setTitle(title);
+		alert.setHeaderText(header);
+		alert.setContentText(content);
+
+		Optional<ButtonType> result = alert.showAndWait();
+		return (result.get() == ButtonType.OK);
+	}
+
+	private Optional<String> showDialog(String inputText, String imageName, String headerText, String title,
+			String contentText) {
+		Dialog<String> dialog = new TextInputDialog(inputText);
+		dialog.setTitle(title);
+		dialog.setHeaderText(headerText);
+		if (imageName != null) {
+			dialog.setGraphic(new ImageView(this.getClass().getResource(imageName).toString()));
+		}
+		dialog.setContentText(contentText);
+		Optional<String> result = dialog.showAndWait();
+		return result;
+	}
+
+	private void showInformation(String title, String content) {
+		Alert alert = new Alert(AlertType.INFORMATION);
+		alert.setTitle(title);
+		alert.setHeaderText(null);
+		alert.setContentText(content);
+		alert.showAndWait();
 	}
 
 }

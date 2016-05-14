@@ -12,12 +12,12 @@ import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MultipleSelectionModel;
 import javafx.scene.control.SelectionMode;
 import javafx.scene.control.SelectionModel;
 import javafx.scene.layout.Pane;
-import javafx.scene.control.Label;
 
 public class PictureOrganizer implements Initializable {
 
@@ -41,8 +41,23 @@ public class PictureOrganizer implements Initializable {
 	private ObservableList<String> observedFolderItems, observedImageItems, observedDeletedImageItems,
 			observedYearItems;
 
+	private void addItems(ObservableList<String> list, File file, Label counterLabel, ListView<String> view) {
+		String[] setOfImages = fileHandler.getSetOfImages(file);
+		list.addAll(setOfImages);
+		int length = setOfImages.length;
+		counterLabel.setText(length + " image" + (length != 1 ? "s" : ""));
+		if (view != null && setOfImages.length > 0) {
+			view.getSelectionModel().select(setOfImages[0]);
+		}
+	}
+
 	@FXML
 	public void buttonDeletePressed() {
+	}
+
+	@FXML
+	public void buttonDownImage() {
+		moveImages(imageItems, FileHandler.deletedFolder);
 	}
 
 	@FXML
@@ -52,6 +67,11 @@ public class PictureOrganizer implements Initializable {
 
 	@FXML
 	public void buttonMovePressed() {
+	}
+
+	@FXML
+	public void buttonUpImage() {
+		moveImages(imageDeletedItems, FileHandler.outputFolder);
 	}
 
 	private ObservableList<String> getItems(ComboBox<String> combo, ChangeListener<String> changeListener) {
@@ -132,7 +152,7 @@ public class PictureOrganizer implements Initializable {
 		observedYearItems = getItems(yearItems, new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				loadImageList();
+				loadImageList(imageItems);
 			}
 		});
 
@@ -154,7 +174,7 @@ public class PictureOrganizer implements Initializable {
 		}
 	}
 
-	private void loadImageList() {
+	private void loadImageList(ListView<String> itemsToSelect) {
 		observedImageItems.clear();
 		observedDeletedImageItems.clear();
 		//
@@ -165,19 +185,9 @@ public class PictureOrganizer implements Initializable {
 			File fileDeleted = new File(FileHandler.deletedFolder, folder + " " + year);
 			fileHandler.initImages(file, fileDeleted);
 
-			addItems(observedImageItems, file, countImageItems, imageItems);
+			addItems(observedImageItems, file, countImageItems, itemsToSelect);
 			addItems(observedDeletedImageItems, fileDeleted, countDeletedItems, null);
 
-		}
-	}
-
-	private void addItems(ObservableList<String> list, File file, Label counterLabel, ListView<String> view) {
-		String[] setOfImages = fileHandler.getSetOfImages(file);
-		list.addAll(setOfImages);
-		int length = setOfImages.length;
-		counterLabel.setText(length + " image" + (length != 1 ? "s" : ""));
-		if (view != null && setOfImages.length > 0) {
-			view.getSelectionModel().select(setOfImages[0]);
 		}
 	}
 
@@ -194,6 +204,18 @@ public class PictureOrganizer implements Initializable {
 		}
 	}
 
+	private void moveImages(ListView<String> selectionList, File moveToFolder) {
+		MultipleSelectionModel<String> selectionModel = selectionList.getSelectionModel();
+		int selectedIndex = selectionModel.getSelectedIndex();
+		ObservableList<String> selectedItems = selectionModel.getSelectedItems();
+		for (String item : selectedItems) {
+			fileHandler.renameFile(moveToFolder, folderItems.getSelectionModel().getSelectedItem(), item);
+			selectionList.getItems();
+		}
+		loadImageList(selectionList);
+		selectionModel.clearAndSelect(selectedIndex);
+	}
+
 	@FXML
 	public void openImportPage() {
 		PictureCurator.openScene(PictureCurator.IMPORTER);
@@ -202,7 +224,7 @@ public class PictureOrganizer implements Initializable {
 	@FXML
 	public void reloadImages() {
 		loadFolderList();
-		loadImageList();
+		loadImageList(imageItems);
 	}
 
 }

@@ -30,6 +30,7 @@
 					<bottom>
 						<HBox alignment="CENTER_LEFT">
 							<Button text="Reload" onAction="#reloadImages" />
+							<Button text="DeleteNonHDR" onAction="#buttonDeleteNonHDR" />
 						</HBox>
 					</bottom>
 				</BorderPane>

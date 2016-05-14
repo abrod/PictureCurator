@@ -22,25 +22,11 @@ public class FileHandler {
 	static File deletedFolder = new File("c:\\Daten\\Bilder\\AlbenDelete");
 	static File newFolder = new File("c:\\Daten\\Bilder\\AlbenNew");
 
+	static String HDR_KEY = "(hdr)";
+
 	private Map<String, String> mapOfMonths = new HashMap<String, String>();
 
 	private Map<File, Map<String, File>> mapOfImages = new HashMap<>();
-
-	List<String> getFolderNames() {
-		Pattern compile = Pattern.compile("(.*) \\d{4}");
-		return getFolderNames(compile);
-	}
-
-	private List<String> getFolderNames(Pattern compile) {
-		List<String> lstFolderNames = new ArrayList<>();
-		addFolderNamesWithPattern(lstFolderNames, compile, outputFolder.list());
-		for (File subFolder : newFolder.listFiles()) {
-			if (subFolder.isDirectory())
-				addFolderNamesWithPattern(lstFolderNames, compile, subFolder.list());
-		}
-		Collections.sort(lstFolderNames);
-		return lstFolderNames;
-	}
 
 	void addFolderNamesWithPattern(List<String> lst, Pattern compile, String[] list) {
 		for (String sFileName : list) {
@@ -54,55 +40,35 @@ public class FileHandler {
 		}
 	}
 
-	void initImages(File... imageFolders) {
-		mapOfImages.clear();
-		Set<String> imageNames = new HashSet<>();
-		for (File imageFolder : imageFolders)
-			if (imageFolder.exists() && imageFolder.isDirectory()) {
-				Map<String, File> mapOfFolderImages = new HashMap<>();
-				mapOfImages.put(imageFolder, mapOfFolderImages);
-				Pattern compile = Pattern.compile("(\\d{4})-?(\\d{2})-?(\\d{2})[_](\\d{2})-?(\\d{2})-?(\\d{2}).*");
-				for (File imageFile : imageFolder.listFiles()) {
-					String sName = imageFile.getName();
-					if (!sName.toLowerCase().endsWith("jpg"))
-						continue;
-					Matcher matcher = compile.matcher(sName);
-					if (matcher.find()) {
-						String sNameNew = matcher.group(3) + "." + getMonth(matcher.group(2)) + " " + matcher.group(1)
-								+ " " + matcher.group(4) + ":" + matcher.group(5) + ":" + matcher.group(6);
-						if (sName.contains("HDR")) {
-							sNameNew += " (hrd)";
-						}
-						if (mapOfFolderImages.containsKey(sNameNew)) {
-							int iCount = 2;
-							while (mapOfFolderImages.containsKey(sNameNew + iCount)) {
-								iCount++;
-							}
-							sNameNew += iCount;
-						}
-						sName = sNameNew;
-					}
-					if (imageNames.add(sName)) {
-						mapOfFolderImages.put(sName, imageFile);
-					}
-				}
-			}
+	File deleteFolder(String subFolderName) {
+		return new File(FileHandler.deletedFolder, subFolderName);
 	}
 
-	String[] getSetOfImages(File imageFolder) {
-		Map<String, File> baseMap = mapOfImages.get(imageFolder);
-		if (baseMap == null)
-			return new String[0];
-		String[] array = baseMap.keySet().toArray(new String[0]);
-		Comparator<String> comp = new Comparator<String>() {
+	List<String> getFolderNames() {
+		Pattern compile = Pattern.compile("(.*) \\d{4}");
+		return getFolderNames(compile);
+	}
 
-			@Override
-			public int compare(String o1, String o2) {
-				return baseMap.get(o1).compareTo(baseMap.get(o2));
+	private List<String> getFolderNames(Pattern compile) {
+		List<String> lstFolderNames = new ArrayList<>();
+		addFolderNamesWithPattern(lstFolderNames, compile, outputFolder.list());
+		for (File subFolder : newFolder.listFiles()) {
+			if (subFolder.isDirectory()) {
+				addFolderNamesWithPattern(lstFolderNames, compile, subFolder.list());
 			}
-		};
-		Arrays.sort(array, comp);
-		return array;
+		}
+		Collections.sort(lstFolderNames);
+		return lstFolderNames;
+	}
+
+	File getImageFile(String sFileName) {
+		for (Map<String, File> innerMap : mapOfImages.values()) {
+			File file = innerMap.get(sFileName);
+			if (file != null) {
+				return file;
+			}
+		}
+		return null;
 	}
 
 	private String getMonth(String group) {
@@ -118,33 +84,21 @@ public class FileHandler {
 		return month;
 	}
 
-	File getImageFile(String sFileName) {
-		for (Map<String, File> innerMap : mapOfImages.values()) {
-			File file = innerMap.get(sFileName);
-			if (file != null)
-				return file;
+	String[] getSetOfImages(File imageFolder) {
+		Map<String, File> baseMap = mapOfImages.get(imageFolder);
+		if (baseMap == null) {
+			return new String[0];
 		}
-		return null;
-	}
+		String[] array = baseMap.keySet().toArray(new String[0]);
+		Comparator<String> comp = new Comparator<String>() {
 
-	boolean renameFile(File baseFolder, String moveToFolder, String string) {
-		File file = getImageFile(string);
-		if (file == null || !file.exists())
-			return false;
-		String year = file.getName().substring(0, 4);
-		File toFolder = new File(baseFolder, moveToFolder + " " + year);
-		if (!toFolder.exists()) {
-			toFolder.mkdirs();
-		}
-		File dest = new File(toFolder, file.getName());
-		System.out.println("... rename " + file.getName() + " to " + dest.getAbsolutePath());
-		boolean renameTo = file.renameTo(dest);
-		return renameTo;
-	}
-
-	File newFolder() {
-		String today = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-		return new File(FileHandler.newFolder, today);
+			@Override
+			public int compare(String o1, String o2) {
+				return baseMap.get(o1).compareTo(baseMap.get(o2));
+			}
+		};
+		Arrays.sort(array, comp);
+		return array;
 	}
 
 	public String[] getYears(String folderName) {
@@ -154,6 +108,69 @@ public class FileHandler {
 		Pattern compile = Pattern.compile(Pattern.quote(folderName) + " (\\d{4})");
 		List<String> folderNames = getFolderNames(compile);
 		return folderNames.toArray(new String[0]);
+	}
+
+	void initImages(File... imageFolders) {
+		mapOfImages.clear();
+		Set<String> imageNames = new HashSet<>();
+		for (File imageFolder : imageFolders) {
+			if (imageFolder.exists() && imageFolder.isDirectory()) {
+				Map<String, File> mapOfFolderImages = new HashMap<>();
+				mapOfImages.put(imageFolder, mapOfFolderImages);
+				Pattern compile = Pattern.compile("(\\d{4})-?(\\d{2})-?(\\d{2})[_](\\d{2})-?(\\d{2})-?(\\d{2}).*");
+				for (File imageFile : imageFolder.listFiles()) {
+					String sName = imageFile.getName();
+					if (!sName.toLowerCase().endsWith("jpg")) {
+						continue;
+					}
+					Matcher matcher = compile.matcher(sName);
+					if (matcher.find()) {
+						String sNameNew = matcher.group(3) + "." + getMonth(matcher.group(2)) + " " + matcher.group(1)
+								+ " " + matcher.group(4) + ":" + matcher.group(5) + ":" + matcher.group(6);
+						if (sName.contains("HDR")) {
+							sNameNew += " " + HDR_KEY;
+						}
+						if (mapOfFolderImages.containsKey(sNameNew)) {
+							int iCount = 2;
+							while (mapOfFolderImages.containsKey(sNameNew + iCount)) {
+								iCount++;
+							}
+							sNameNew += iCount;
+						}
+						sName = sNameNew;
+					}
+					if (imageNames.add(sName)) {
+						mapOfFolderImages.put(sName, imageFile);
+					}
+				}
+			}
+		}
+	}
+
+	File newFolder() {
+		String today = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+		return new File(FileHandler.newFolder, today);
+	}
+
+	boolean renameFile(File baseFolder, String moveToFolder, String fileName) {
+		File file = getImageFile(fileName);
+		if (file == null || !file.exists()) {
+			return false;
+		}
+		File toFolder;
+		if (moveToFolder.length() > 0) {
+			String year = file.getName().substring(0, 4);
+			toFolder = new File(baseFolder, moveToFolder + " " + year);
+		} else {
+			toFolder = baseFolder;
+		}
+		if (!toFolder.exists()) {
+			toFolder.mkdirs();
+		}
+		File dest = new File(toFolder, file.getName());
+		System.out.println("... rename " + file.getName() + " to " + dest.getAbsolutePath());
+		boolean renameTo = file.renameTo(dest);
+		return renameTo;
 	}
 
 }
